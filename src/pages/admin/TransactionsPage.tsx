@@ -38,22 +38,52 @@ export default function TransactionsPage() {
 
   async function fetchTransactions() {
     try {
-      const { data, error } = await supabase
+      const { data: txData, error: txError } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          account:accounts!transactions_account_id_fkey(
-            account_number,
-            user_id,
-            profiles:user_id(full_name)
-          ),
-          recipient_account:accounts!transactions_recipient_account_id_fkey(account_number)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
-      setTransactions(data || []);
+      if (txError) throw txError;
+
+      // Fetch account details for each transaction
+      const txWithDetails = await Promise.all(
+        (txData || []).map(async (tx) => {
+          const { data: accountData } = await supabase
+            .from('accounts')
+            .select('account_number, user_id')
+            .eq('id', tx.account_id)
+            .single();
+
+          let profiles = { full_name: 'N/A' };
+          if (accountData?.user_id) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', accountData.user_id)
+              .single();
+            if (profileData) profiles = profileData;
+          }
+
+          let recipientAccount = null;
+          if (tx.recipient_account_id) {
+            const { data: recipientData } = await supabase
+              .from('accounts')
+              .select('account_number')
+              .eq('id', tx.recipient_account_id)
+              .single();
+            recipientAccount = recipientData;
+          }
+
+          return {
+            ...tx,
+            account: { ...accountData, profiles },
+            recipient_account: recipientAccount
+          };
+        })
+      );
+
+      setTransactions(txWithDetails);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
