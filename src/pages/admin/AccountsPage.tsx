@@ -66,16 +66,30 @@ export default function AccountsPage() {
 
   async function fetchAccounts() {
     try {
-      const { data, error } = await supabase
+      const { data: accountsData, error: accountsError } = await supabase
         .from('accounts')
-        .select(`
-          *,
-          profiles:user_id(full_name, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setAccounts(data || []);
+      if (accountsError) throw accountsError;
+
+      // Fetch profiles for each account
+      const accountsWithProfiles = await Promise.all(
+        (accountsData || []).map(async (account) => {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', account.user_id)
+            .single();
+          
+          return {
+            ...account,
+            profiles: profileData || { full_name: 'N/A', email: '' }
+          };
+        })
+      );
+
+      setAccounts(accountsWithProfiles);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {

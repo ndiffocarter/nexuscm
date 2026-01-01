@@ -55,17 +55,30 @@ export default function LoansPage() {
 
   async function fetchLoans() {
     try {
-      const { data, error } = await supabase
+      const { data: loansData, error: loansError } = await supabase
         .from('loans')
-        .select(`
-          *,
-          profiles:user_id(full_name, email),
-          accounts:account_id(account_number)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setLoans(data || []);
+      if (loansError) throw loansError;
+
+      // Fetch profiles and accounts for each loan
+      const loansWithDetails = await Promise.all(
+        (loansData || []).map(async (loan) => {
+          const [profileRes, accountRes] = await Promise.all([
+            supabase.from('profiles').select('full_name, email').eq('id', loan.user_id).single(),
+            supabase.from('accounts').select('account_number').eq('id', loan.account_id).single()
+          ]);
+          
+          return {
+            ...loan,
+            profiles: profileRes.data || { full_name: 'N/A', email: '' },
+            accounts: accountRes.data || { account_number: 'N/A' }
+          };
+        })
+      );
+
+      setLoans(loansWithDetails);
     } catch (error) {
       console.error('Error fetching loans:', error);
     } finally {

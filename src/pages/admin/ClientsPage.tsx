@@ -62,18 +62,32 @@ export default function ClientsPage() {
 
   async function fetchClients() {
     try {
-      const { data, error } = await supabase
+      // Fetch profiles first
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          accounts(id, account_type, balance)
-        `)
+        .select('*')
         .eq('role', 'client')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setClients(data || []);
-      setFilteredClients(data || []);
+      if (profilesError) throw profilesError;
+
+      // Fetch accounts for each profile
+      const clientsWithAccounts = await Promise.all(
+        (profilesData || []).map(async (profile) => {
+          const { data: accountsData } = await supabase
+            .from('accounts')
+            .select('id, account_type, balance')
+            .eq('user_id', profile.id);
+          
+          return {
+            ...profile,
+            accounts: accountsData || []
+          };
+        })
+      );
+
+      setClients(clientsWithAccounts);
+      setFilteredClients(clientsWithAccounts);
     } catch (error) {
       console.error('Error fetching clients:', error);
     } finally {
