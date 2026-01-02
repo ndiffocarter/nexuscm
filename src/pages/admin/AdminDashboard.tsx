@@ -57,10 +57,7 @@ export default function AdminDashboard() {
         // Fetch recent transactions
         const { data: transactions } = await supabase
           .from('transactions')
-          .select(`
-            *,
-            account:accounts(account_number, user_id, profiles:user_id(full_name))
-          `)
+          .select('*, account:accounts(account_number)')
           .order('created_at', { ascending: false })
           .limit(5);
 

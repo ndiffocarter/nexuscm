@@ -142,7 +142,7 @@ export default function ClientDashboard() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-        <Link to="/client/transfer">
+        <Link to="/dashboard/transfer">
           <Card className="glass-card hover:shadow-elevated transition-all duration-300 cursor-pointer group">
             <CardContent className="p-4 flex flex-col items-center gap-3">
               <div className="w-12 h-12 rounded-xl [background:var(--gradient-primary)] flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -152,7 +152,7 @@ export default function ClientDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link to="/client/loans">
+        <Link to="/dashboard/loans">
           <Card className="glass-card hover:shadow-elevated transition-all duration-300 cursor-pointer group">
             <CardContent className="p-4 flex flex-col items-center gap-3">
               <div className="w-12 h-12 rounded-xl [background:var(--gradient-gold)] flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -162,7 +162,7 @@ export default function ClientDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link to="/client/accounts">
+        <Link to="/dashboard/accounts">
           <Card className="glass-card hover:shadow-elevated transition-all duration-300 cursor-pointer group">
             <CardContent className="p-4 flex flex-col items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -172,7 +172,7 @@ export default function ClientDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link to="/client/support">
+        <Link to="/dashboard/support">
           <Card className="glass-card hover:shadow-elevated transition-all duration-300 cursor-pointer group">
             <CardContent className="p-4 flex flex-col items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -192,7 +192,7 @@ export default function ClientDashboard() {
         <Card className="glass-card animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Mes comptes</CardTitle>
-            <Link to="/client/accounts">
+            <Link to="/dashboard/accounts">
               <Button variant="ghost" size="sm">Voir tout</Button>
             </Link>
           </CardHeader>
