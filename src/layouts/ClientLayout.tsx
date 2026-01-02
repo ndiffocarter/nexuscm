@@ -12,16 +12,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { to: '/client', icon: Home, label: 'Tableau de bord' },
-  { to: '/client/accounts', icon: CreditCard, label: 'Mes comptes' },
-  { to: '/client/transfer', icon: Send, label: 'Virement' },
-  { to: '/client/loans', icon: FileText, label: 'Demander un prêt' },
-  { to: '/client/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/client/support', icon: HelpCircle, label: 'Support' },
+  { to: '/dashboard', icon: Home, label: 'Tableau de bord' },
+  { to: '/dashboard/accounts', icon: CreditCard, label: 'Mes comptes' },
+  { to: '/dashboard/transfer', icon: Send, label: 'Virement' },
+  { to: '/dashboard/loans', icon: FileText, label: 'Demander un prêt' },
+  { to: '/dashboard/notifications', icon: Bell, label: 'Notifications' },
+  { to: '/dashboard/support', icon: HelpCircle, label: 'Support' },
 ];
 
 export default function ClientLayout() {
-  const { user, signOut, loading } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -29,10 +29,10 @@ export default function ClientLayout() {
   const [profile, setProfile] = useState<{ full_name: string } | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isLoading && !user) {
       navigate('/login');
     }
-  }, [user, loading, navigate]);
+  }, [user, isLoading, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -64,7 +64,7 @@ export default function ClientLayout() {
     navigate('/login');
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -167,7 +167,7 @@ export default function ClientLayout() {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Link to="/client/notifications" className="relative">
+            <Link to="/dashboard/notifications" className="relative">
               <Button variant="ghost" size="icon">
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
