@@ -8,7 +8,6 @@ interface UserProfile {
   full_name: string;
   phone?: string;
   address?: string;
-  role: 'admin' | 'client';
   created_at: string;
   updated_at: string;
 }
@@ -29,47 +28,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    if (!error && data) {
-      setProfile(data as UserProfile);
-    }
-  };
+  // We split “auth initialized” and “role/profile loaded” to avoid redirecting
+  // before we actually know if the user is admin or client.
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [accessInitialized, setAccessInitialized] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-        }, 0);
-      } else {
-        setProfile(null);
-      }
-      
-      setIsLoading(false);
+      setAuthInitialized(true);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      
-      setIsLoading(false);
+      setAuthInitialized(true);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAccess(userId: string) {
+      setAccessInitialized(false);
+
+      try {
+        const [{ data: profileData }, { data: adminFlag }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle(),
+          // Roles are validated server-side via a DB function.
+          supabase.rpc('has_role', { _role: 'admin', _user_id: userId }),
+        ]);
+
+        if (cancelled) return;
+
+        setProfile((profileData as UserProfile) ?? null);
+        setIsAdmin(Boolean(adminFlag));
+      } finally {
+        if (!cancelled) setAccessInitialized(true);
+      }
+    }
+
+    if (!authInitialized) return;
+
+    if (!user) {
+      setProfile(null);
+      setIsAdmin(false);
+      setAccessInitialized(true);
+      return;
+    }
+
+    loadAccess(user.id);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authInitialized, user?.id]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -81,9 +103,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setIsAdmin(false);
+    setAuthInitialized(true);
+    setAccessInitialized(true);
   };
 
-  const isAdmin = profile?.role === 'admin';
+  const isLoading = !authInitialized || !accessInitialized;
 
   return (
     <AuthContext.Provider value={{ user, session, profile, isLoading, isAdmin, signIn, signOut }}>
@@ -99,3 +124,4 @@ export function useAuth() {
   }
   return context;
 }
+

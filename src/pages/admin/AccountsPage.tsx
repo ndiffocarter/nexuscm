@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, CreditCard, ArrowUpRight, ArrowDownRight, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -42,6 +43,10 @@ interface Client {
 }
 
 export default function AccountsPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isNewRoute = location.pathname === '/admin/accounts/new';
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +68,12 @@ export default function AccountsPage() {
     fetchAccounts();
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    if (isNewRoute) {
+      setIsCreateDialogOpen(true);
+    }
+  }, [isNewRoute]);
 
   async function fetchAccounts() {
     try {
@@ -98,10 +109,28 @@ export default function AccountsPage() {
   }
 
   async function fetchClients() {
+    const { data: roleRows, error: roleError } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .eq('role', 'client');
+
+    if (roleError) {
+      setClients([]);
+      return;
+    }
+
+    const clientIds = (roleRows || []).map(r => r.user_id);
+    if (clientIds.length === 0) {
+      setClients([]);
+      return;
+    }
+
     const { data } = await supabase
       .from('profiles')
       .select('id, full_name, email')
-      .eq('role', 'client');
+      .in('id', clientIds)
+      .order('full_name', { ascending: true });
+
     setClients(data || []);
   }
 
@@ -235,7 +264,15 @@ export default function AccountsPage() {
             />
           </div>
           
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={(open) => {
+              setIsCreateDialogOpen(open);
+              if (!open && isNewRoute) {
+                navigate('/admin/accounts', { replace: true });
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button variant="gradient">
                 <Plus className="w-4 h-4 mr-2" />
