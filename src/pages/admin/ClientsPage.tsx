@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, MoreVertical, Mail, Phone, User, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -33,6 +34,10 @@ interface Client {
 }
 
 export default function ClientsPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isNewRoute = location.pathname === '/admin/clients/new';
+
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +57,12 @@ export default function ClientsPage() {
   }, []);
 
   useEffect(() => {
+    if (isNewRoute) {
+      setIsDialogOpen(true);
+    }
+  }, [isNewRoute]);
+
+  useEffect(() => {
     const filtered = clients.filter(client => 
       client.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -62,11 +73,26 @@ export default function ClientsPage() {
 
   async function fetchClients() {
     try {
-      // Fetch profiles first
+      // Roles are stored in user_roles; we first list client user_ids then load their profiles.
+      const { data: roleRows, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'client');
+
+      if (roleError) throw roleError;
+
+      const clientIds = (roleRows || []).map(r => r.user_id);
+
+      if (clientIds.length === 0) {
+        setClients([]);
+        setFilteredClients([]);
+        return;
+      }
+
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'client')
+        .in('id', clientIds)
         .order('created_at', { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -180,7 +206,15 @@ export default function ClientsPage() {
               Filtrer
             </Button>
             
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open && isNewRoute) {
+                  navigate('/admin/clients', { replace: true });
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button variant="gradient">
                   <Plus className="w-4 h-4 mr-2" />

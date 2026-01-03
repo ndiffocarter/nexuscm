@@ -35,9 +35,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Fetch clients count
+        // Fetch clients count (role stored in user_roles)
         const { count: clientsCount } = await supabase
-          .from('profiles')
+          .from('user_roles')
           .select('*', { count: 'exact', head: true })
           .eq('role', 'client');
 

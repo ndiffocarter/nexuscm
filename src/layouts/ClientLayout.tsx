@@ -21,7 +21,7 @@ const navItems = [
 ];
 
 export default function ClientLayout() {
-  const { user, isLoading, signOut } = useAuth();
+  const { user, isLoading, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -33,6 +33,13 @@ export default function ClientLayout() {
       navigate('/login');
     }
   }, [user, isLoading, navigate]);
+
+  useEffect(() => {
+    // Prevent admins from ending up in the client dashboard.
+    if (!isLoading && user && isAdmin) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, isAdmin, isLoading, navigate]);
 
   useEffect(() => {
     if (user) {
