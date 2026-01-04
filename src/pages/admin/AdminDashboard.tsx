@@ -54,18 +54,35 @@ export default function AdminDashboard() {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending');
 
-        // Fetch recent transactions
-        const { data: transactions } = await supabase
+        // Fetch recent transactions (no FK relationship is defined in DB, so we hydrate account_number manually)
+        const { data: txData, error: txError } = await supabase
           .from('transactions')
-          .select('*, account:accounts(account_number)')
+          .select('id, created_at, transaction_type, amount, description, account_id')
           .order('created_at', { ascending: false })
           .limit(5);
+
+        if (txError) throw txError;
+
+        const recentTransactions = await Promise.all(
+          (txData || []).map(async (tx) => {
+            const { data: accountData } = await supabase
+              .from('accounts')
+              .select('account_number')
+              .eq('id', tx.account_id)
+              .maybeSingle();
+
+            return {
+              ...tx,
+              account: accountData ? { account_number: accountData.account_number } : null,
+            };
+          })
+        );
 
         setStats({
           totalClients: clientsCount || 0,
           totalBalance,
           pendingLoans: pendingLoans || 0,
-          recentTransactions: transactions || []
+          recentTransactions
         });
       } catch (error) {
         console.error('Error fetching stats:', error);

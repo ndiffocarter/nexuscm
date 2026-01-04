@@ -125,36 +125,30 @@ export default function ClientsPage() {
     e.preventDefault();
     
     try {
-      // Create user via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newClient.email,
-        password: newClient.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/login`,
-          data: {
-            full_name: newClient.full_name,
-            role: 'client'
-          }
-        }
+      const { data, error } = await supabase.functions.invoke('admin-create-client', {
+        body: {
+          email: newClient.email,
+          password: newClient.password,
+          full_name: newClient.full_name,
+          phone: newClient.phone || null,
+          address: newClient.address || null,
+        },
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
 
-      // Update profile with additional info
-      if (authData.user) {
-        await supabase
-          .from('profiles')
-          .update({
-            phone: newClient.phone,
-            address: newClient.address
-          })
-          .eq('id', authData.user.id);
+      if (data && (data as any).email_sent === false) {
+        toast({
+          title: "Client créé",
+          description: "Le client a été créé, mais l'email n'a pas pu être envoyé.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Client créé avec succès",
+          description: `Les identifiants ont été envoyés à ${newClient.email}`,
+        });
       }
-
-      toast({
-        title: "Client créé avec succès",
-        description: `Les identifiants ont été envoyés à ${newClient.email}`,
-      });
 
       setIsDialogOpen(false);
       setNewClient({ email: '', full_name: '', phone: '', address: '', password: '' });
