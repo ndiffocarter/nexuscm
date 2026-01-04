@@ -4,7 +4,8 @@ import {
   Users, 
   CreditCard, 
   ArrowLeftRight, 
-  FileText, 
+  FileText,
+  HelpCircle,
   LogOut,
   Building2,
   X,
@@ -20,6 +21,7 @@ const navItems = [
   { icon: CreditCard, label: 'Comptes', path: '/admin/accounts' },
   { icon: ArrowLeftRight, label: 'Transactions', path: '/admin/transactions' },
   { icon: FileText, label: 'Demandes de prêt', path: '/admin/loans' },
+  { icon: HelpCircle, label: 'Support', path: '/admin/support' },
 ];
 
 interface AdminSidebarProps {

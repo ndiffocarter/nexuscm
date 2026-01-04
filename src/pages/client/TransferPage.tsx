@@ -83,127 +83,17 @@ export default function TransferPage() {
         throw new Error('Solde insuffisant');
       }
 
-      // Find recipient account
-      const { data: recipientAccount, error: recipientError } = await supabase
-        .from('accounts')
-        .select('id, user_id, account_number')
-        .eq('account_number', form.toAccountNumber)
-        .eq('is_active', true)
-        .single();
-
-      if (recipientError || !recipientAccount) {
-        throw new Error('Compte destinataire non trouvé');
-      }
-
-      if (recipientAccount.id === form.fromAccountId) {
-        throw new Error('Vous ne pouvez pas effectuer un virement vers le même compte');
-      }
-
-      // Get recipient balance
-      const { data: recipientData } = await supabase
-        .from('accounts')
-        .select('balance')
-        .eq('id', recipientAccount.id)
-        .single();
-
-      // Update sender balance
-      const { error: senderUpdateError } = await supabase
-        .from('accounts')
-        .update({ balance: fromAccount.balance - amount })
-        .eq('id', form.fromAccountId);
-
-      if (senderUpdateError) throw senderUpdateError;
-
-      // Update recipient balance
-      const { error: recipientUpdateError } = await supabase
-        .from('accounts')
-        .update({ balance: Number(recipientData?.balance || 0) + amount })
-        .eq('id', recipientAccount.id);
-
-      if (recipientUpdateError) throw recipientUpdateError;
-
-      // Create transaction records
-      await supabase.from('transactions').insert([
-        {
-          account_id: form.fromAccountId,
-          transaction_type: 'transfer',
-          amount: amount,
-          description: form.description || `Virement vers ${form.toAccountNumber}`,
-          recipient_account_id: recipientAccount.id
+      const { error: transferError } = await supabase.functions.invoke('process-transfer', {
+        body: {
+          fromAccountId: form.fromAccountId,
+          toAccountNumber: form.toAccountNumber,
+          amount,
+          description: form.description,
         },
-        {
-          account_id: recipientAccount.id,
-          transaction_type: 'credit',
-          amount: amount,
-          description: form.description || `Virement de ${fromAccount.account_number}`
-        }
-      ]);
+      });
 
-      // Get sender and recipient profiles for notifications
-      const [senderProfile, recipientProfile] = await Promise.all([
-        supabase.from('profiles').select('full_name, email').eq('id', user?.id).single(),
-        supabase.from('profiles').select('full_name, email').eq('id', recipientAccount.user_id).single()
-      ]);
-
-      // Create notifications
-      await supabase.from('notifications').insert([
-        {
-          user_id: user?.id,
-          title: 'Virement effectué',
-          message: `Votre virement de ${formatCurrency(amount)} vers ${form.toAccountNumber} a été effectué avec succès.`,
-          notification_type: 'transfer_sent'
-        },
-        {
-          user_id: recipientAccount.user_id,
-          title: 'Virement reçu',
-          message: `Vous avez reçu un virement de ${formatCurrency(amount)} de ${senderProfile.data?.full_name || 'Un client'}.`,
-          notification_type: 'transfer_received'
-        }
-      ]);
-
-      // Send email notifications
-      try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        
-        // Email to sender
-        if (senderProfile.data?.email) {
-          await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'transfer_sent',
-              to: senderProfile.data.email,
-              data: {
-                name: senderProfile.data.full_name,
-                amount,
-                accountNumber: fromAccount.account_number,
-                recipientAccountNumber: form.toAccountNumber,
-                description: form.description
-              }
-            })
-          });
-        }
-
-        // Email to recipient
-        if (recipientProfile.data?.email) {
-          await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'transfer_received',
-              to: recipientProfile.data.email,
-              data: {
-                name: recipientProfile.data.full_name,
-                amount,
-                accountNumber: recipientAccount.account_number,
-                senderName: senderProfile.data?.full_name,
-                description: form.description
-              }
-            })
-          });
-        }
-      } catch (emailError) {
-        console.error('Error sending emails:', emailError);
+      if (transferError) {
+        throw new Error(transferError.message);
       }
 
       setSuccess(true);
