@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MoreVertical, Mail, Phone, User, ChevronDown } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, Mail, Phone, User, Trash2, Edit, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
@@ -50,6 +61,10 @@ export default function ClientsPage() {
     address: '',
     password: ''
   });
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -173,6 +188,37 @@ export default function ClientsPage() {
   const getTotalBalance = (accounts?: { balance: number }[]) => {
     return accounts?.reduce((sum, acc) => sum + Number(acc.balance), 0) || 0;
   };
+
+  async function handleDeleteClient() {
+    if (!selectedClient) return;
+    setIsDeleting(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-delete-client', {
+        body: { client_id: selectedClient.id },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Client supprimé",
+        description: `${selectedClient.full_name} a été supprimé avec succès`,
+      });
+
+      setDeleteDialogOpen(false);
+      setSelectedClient(null);
+      fetchClients();
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -307,9 +353,23 @@ export default function ClientsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Voir le profil</DropdownMenuItem>
-                      <DropdownMenuItem>Gérer les comptes</DropdownMenuItem>
-                      <DropdownMenuItem>Envoyer un message</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setSelectedClient(client);
+                        setViewDialogOpen(true);
+                      }}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Voir le profil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          setSelectedClient(client);
+                          setDeleteDialogOpen(true);
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Supprimer
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </CardHeader>
@@ -363,6 +423,84 @@ export default function ClientsPage() {
           </div>
         )}
       </div>
+
+      {/* View Client Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Profil du client</DialogTitle>
+            <DialogDescription>Informations détaillées du client</DialogDescription>
+          </DialogHeader>
+          {selectedClient && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full [background:var(--gradient-primary)] flex items-center justify-center text-white font-bold text-2xl">
+                  {selectedClient.full_name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedClient.full_name}</h3>
+                  <p className="text-muted-foreground">{selectedClient.email}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Téléphone</p>
+                  <p className="font-medium">{selectedClient.phone || 'Non renseigné'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Adresse</p>
+                  <p className="font-medium">{selectedClient.address || 'Non renseignée'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Date d'inscription</p>
+                  <p className="font-medium">{new Date(selectedClient.created_at).toLocaleDateString('fr-FR')}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Solde total</p>
+                  <p className="font-medium">{formatCurrency(getTotalBalance(selectedClient.accounts))}</p>
+                </div>
+              </div>
+
+              {selectedClient.accounts && selectedClient.accounts.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Comptes</p>
+                  <div className="space-y-2">
+                    {selectedClient.accounts.map((acc) => (
+                      <div key={acc.id} className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
+                        <span className="text-sm">{acc.account_type === 'checking' ? 'Courant' : 'Épargne'}</span>
+                        <span className="font-medium">{formatCurrency(acc.balance)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce client ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Toutes les données du client ({selectedClient?.full_name}) seront supprimées, y compris ses comptes, transactions et prêts.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteClient}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
