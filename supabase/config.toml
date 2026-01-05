@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.create-admin]
 verify_jwt = false
+
+[functions.admin-create-client]
+verify_jwt = true
+
+[functions.process-transfer]
+verify_jwt = true
+
+[functions.admin-delete-client]
+verify_jwt = true

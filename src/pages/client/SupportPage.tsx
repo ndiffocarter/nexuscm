@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HelpCircle, Send, MessageSquare, Clock, CheckCircle, Phone, Mail, MapPin } from 'lucide-react';
+import { HelpCircle, Send, MessageSquare, Clock, CheckCircle, Phone, Mail, MapPin, ChevronDown, ChevronUp, Reply } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+
+interface TicketReply {
+  id: string;
+  ticket_id: string;
+  user_id: string;
+  message: string;
+  is_admin: boolean;
+  created_at: string;
+}
 
 interface Ticket {
   id: string;
@@ -16,6 +30,7 @@ interface Ticket {
   message: string;
   status: string;
   created_at: string;
+  replies?: TicketReply[];
 }
 
 export default function SupportPage() {
@@ -28,6 +43,10 @@ export default function SupportPage() {
     subject: '',
     message: ''
   });
+  const [expandedTickets, setExpandedTickets] = useState<Set<string>>(new Set());
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [isReplying, setIsReplying] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -37,14 +56,35 @@ export default function SupportPage() {
 
   async function fetchTickets() {
     try {
-      const { data, error } = await supabase
+      const { data: ticketsData, error } = await supabase
         .from('support_tickets')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTickets(data || []);
+
+      // Fetch replies for all tickets
+      const ticketIds = (ticketsData || []).map(t => t.id);
+      
+      if (ticketIds.length > 0) {
+        const { data: repliesData, error: repliesError } = await supabase
+          .from('ticket_replies')
+          .select('*')
+          .in('ticket_id', ticketIds)
+          .order('created_at', { ascending: true });
+
+        if (repliesError) throw repliesError;
+
+        const ticketsWithReplies = (ticketsData || []).map(ticket => ({
+          ...ticket,
+          replies: (repliesData || []).filter(r => r.ticket_id === ticket.id)
+        }));
+
+        setTickets(ticketsWithReplies);
+      } else {
+        setTickets(ticketsData || []);
+      }
     } catch (error) {
       console.error('Error fetching tickets:', error);
     } finally {
@@ -83,6 +123,57 @@ export default function SupportPage() {
       setIsSubmitting(false);
     }
   }
+
+  async function handleReply(ticketId: string) {
+    if (!replyText.trim()) return;
+    setIsReplying(true);
+
+    try {
+      const { error } = await supabase.from('ticket_replies').insert({
+        ticket_id: ticketId,
+        user_id: user?.id,
+        message: replyText.trim(),
+        is_admin: false
+      });
+
+      if (error) throw error;
+
+      // Update ticket status to open if it was closed
+      await supabase
+        .from('support_tickets')
+        .update({ status: 'open' })
+        .eq('id', ticketId);
+
+      toast({
+        title: "Réponse envoyée",
+        description: "Votre message a été envoyé au support",
+      });
+
+      setReplyText('');
+      setReplyingTo(null);
+      fetchTickets();
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsReplying(false);
+    }
+  }
+
+  const toggleExpanded = (ticketId: string) => {
+    setExpandedTickets(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(ticketId)) {
+        newSet.delete(ticketId);
+      } else {
+        newSet.add(ticketId);
+      }
+      return newSet;
+    });
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -247,25 +338,128 @@ export default function SupportPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {tickets.map((ticket) => (
-                <div 
-                  key={ticket.id}
-                  className="p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        {getStatusBadge(ticket.status)}
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(ticket.created_at).toLocaleDateString('fr-FR')}
-                        </span>
-                      </div>
-                      <h3 className="font-semibold">{ticket.subject}</h3>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{ticket.message}</p>
+              {tickets.map((ticket) => {
+                const isExpanded = expandedTickets.has(ticket.id);
+                const hasReplies = ticket.replies && ticket.replies.length > 0;
+                
+                return (
+                  <Collapsible 
+                    key={ticket.id}
+                    open={isExpanded}
+                    onOpenChange={() => toggleExpanded(ticket.id)}
+                  >
+                    <div className="rounded-xl bg-muted/50 overflow-hidden">
+                      <CollapsibleTrigger className="w-full p-4 hover:bg-muted transition-colors">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-3 mb-2">
+                              {getStatusBadge(ticket.status)}
+                              <span className="text-sm text-muted-foreground">
+                                {new Date(ticket.created_at).toLocaleDateString('fr-FR')}
+                              </span>
+                              {hasReplies && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {ticket.replies!.length} réponse{ticket.replies!.length > 1 ? 's' : ''}
+                                </Badge>
+                              )}
+                            </div>
+                            <h3 className="font-semibold">{ticket.subject}</h3>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{ticket.message}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+                      
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4 space-y-4">
+                          {/* Original message */}
+                          <div className="border-t border-border pt-4">
+                            <p className="text-sm font-medium text-muted-foreground mb-2">Message original</p>
+                            <div className="p-3 rounded-lg bg-background">
+                              <p className="text-sm whitespace-pre-wrap">{ticket.message}</p>
+                            </div>
+                          </div>
+
+                          {/* Replies */}
+                          {hasReplies && (
+                            <div className="space-y-3">
+                              <p className="text-sm font-medium text-muted-foreground">Conversation</p>
+                              {ticket.replies!.map((reply) => (
+                                <div 
+                                  key={reply.id}
+                                  className={`p-3 rounded-lg ${
+                                    reply.is_admin 
+                                      ? 'bg-primary/10 border border-primary/20 ml-4' 
+                                      : 'bg-background mr-4'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-medium">
+                                      {reply.is_admin ? '🛡️ Support' : '👤 Vous'}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(reply.created_at).toLocaleString('fr-FR')}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Reply form */}
+                          {replyingTo === ticket.id ? (
+                            <div className="space-y-3">
+                              <Textarea
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder="Votre réponse..."
+                                rows={3}
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setReplyingTo(null);
+                                    setReplyText('');
+                                  }}
+                                  disabled={isReplying}
+                                >
+                                  Annuler
+                                </Button>
+                                <Button
+                                  variant="gradient"
+                                  size="sm"
+                                  onClick={() => handleReply(ticket.id)}
+                                  disabled={isReplying || !replyText.trim()}
+                                >
+                                  {isReplying ? 'Envoi...' : 'Envoyer'}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setReplyingTo(ticket.id)}
+                            >
+                              <Reply className="w-4 h-4 mr-2" />
+                              Répondre
+                            </Button>
+                          )}
+                        </div>
+                      </CollapsibleContent>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </Collapsible>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
