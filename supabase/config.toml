@@ -7,10 +7,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.admin-create-client]
-verify_jwt = true
+verify_jwt = false
 
 [functions.process-transfer]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-delete-client]
-verify_jwt = true
+verify_jwt = false

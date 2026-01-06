@@ -25,6 +25,12 @@ serve(async (req: Request) => {
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
     const authHeader = req.headers.get("Authorization") ?? "";
+    const url = new URL(req.url);
+    console.log("[admin-create-client]", {
+      method: req.method,
+      path: url.pathname,
+      hasAuth: Boolean(authHeader),
+    });
 
     // Authenticated user client (for checking requester + role)
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
