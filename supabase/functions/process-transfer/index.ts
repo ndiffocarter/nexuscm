@@ -24,6 +24,12 @@ serve(async (req: Request) => {
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
     const authHeader = req.headers.get("Authorization") ?? "";
+    const url = new URL(req.url);
+    console.log("[process-transfer]", {
+      method: req.method,
+      path: url.pathname,
+      hasAuth: Boolean(authHeader),
+    });
 
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
