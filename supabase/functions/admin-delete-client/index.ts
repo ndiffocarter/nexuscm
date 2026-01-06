@@ -73,22 +73,21 @@ serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Check that the user exists and is a client
-    const { data: clientRole, error: clientRoleError } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", client_id)
-      .maybeSingle();
+    // Verify that the user exists and has the client role
+    const { data: isClient, error: isClientError } = await supabaseAdmin.rpc("has_role", {
+      _user_id: client_id,
+      _role: "client",
+    });
 
-    if (clientRoleError) {
-      console.error("Client role check error:", clientRoleError);
+    if (isClientError) {
+      console.error("Client role check error:", isClientError);
       return new Response(JSON.stringify({ error: "Could not verify client" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!clientRole || clientRole.role !== "client") {
+    if (!isClient) {
       return new Response(JSON.stringify({ error: "User is not a client or does not exist" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

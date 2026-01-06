@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { getFunctionErrorMessage } from '@/lib/getFunctionErrorMessage';
 
 interface Account {
   id: string;
@@ -24,7 +25,7 @@ interface Account {
 }
 
 export default function TransferPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,17 +84,28 @@ export default function TransferPage() {
         throw new Error('Solde insuffisant');
       }
 
-      const { error: transferError } = await supabase.functions.invoke('process-transfer', {
+      if (!session?.access_token) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+      }
+
+      const { data, error: transferError } = await supabase.functions.invoke('process-transfer', {
         body: {
           fromAccountId: form.fromAccountId,
-          toAccountNumber: form.toAccountNumber,
+          toAccountNumber: form.toAccountNumber.trim(),
           amount,
           description: form.description,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
       if (transferError) {
-        throw new Error(transferError.message);
+        throw transferError;
+      }
+
+      if ((data as any)?.error) {
+        throw new Error((data as any).error);
       }
 
       setSuccess(true);
@@ -112,7 +124,7 @@ export default function TransferPage() {
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error.message,
+        description: getFunctionErrorMessage(error),
         variant: "destructive",
       });
     } finally {

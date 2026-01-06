@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, MoreVertical, Mail, Phone, User, Trash2, Edit, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { getFunctionErrorMessage } from '@/lib/getFunctionErrorMessage';
 
 interface Client {
   id: string;
@@ -48,6 +50,7 @@ export default function ClientsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const isNewRoute = location.pathname === '/admin/clients/new';
+  const { session } = useAuth();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
@@ -140,6 +143,10 @@ export default function ClientsPage() {
     e.preventDefault();
     
     try {
+      if (!session?.access_token) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-create-client', {
         body: {
           email: newClient.email,
@@ -147,6 +154,9 @@ export default function ClientsPage() {
           full_name: newClient.full_name,
           phone: newClient.phone || null,
           address: newClient.address || null,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
@@ -171,7 +181,7 @@ export default function ClientsPage() {
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error.message,
+        description: getFunctionErrorMessage(error),
         variant: "destructive",
       });
     }
@@ -194,8 +204,15 @@ export default function ClientsPage() {
     setIsDeleting(true);
     
     try {
+      if (!session?.access_token) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-delete-client', {
         body: { client_id: selectedClient.id },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
@@ -212,7 +229,7 @@ export default function ClientsPage() {
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error.message,
+        description: getFunctionErrorMessage(error),
         variant: "destructive",
       });
     } finally {
