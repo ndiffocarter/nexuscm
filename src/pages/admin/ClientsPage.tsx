@@ -72,6 +72,9 @@ export default function ClientsPage() {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState<string | null>(null);
   const [passwordCopied, setPasswordCopied] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editClient, setEditClient] = useState({ full_name: '', phone: '', address: '' });
+  const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -381,6 +384,18 @@ export default function ClientsPage() {
                         <Eye className="w-4 h-4 mr-2" />
                         Voir le profil
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setSelectedClient(client);
+                        setEditClient({
+                          full_name: client.full_name,
+                          phone: client.phone || '',
+                          address: client.address || '',
+                        });
+                        setEditDialogOpen(true);
+                      }}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Modifier
+                      </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => {
                           setSelectedClient(client);
@@ -508,6 +523,95 @@ export default function ClientsPage() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Client Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Modifier le client</DialogTitle>
+            <DialogDescription>
+              Modifier les informations de {selectedClient?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedClient) return;
+              setIsEditing(true);
+
+              try {
+                const { error } = await supabase
+                  .from('profiles')
+                  .update({
+                    full_name: editClient.full_name,
+                    phone: editClient.phone || null,
+                    address: editClient.address || null,
+                  })
+                  .eq('id', selectedClient.id);
+
+                if (error) throw error;
+
+                toast({
+                  title: 'Client modifié',
+                  description: 'Les informations ont été mises à jour',
+                });
+
+                setEditDialogOpen(false);
+                fetchClients();
+              } catch (error: any) {
+                toast({
+                  title: 'Erreur',
+                  description: error.message,
+                  variant: 'destructive',
+                });
+              } finally {
+                setIsEditing(false);
+              }
+            }}
+            className="space-y-4 mt-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="edit_full_name">Nom complet</Label>
+              <Input
+                id="edit_full_name"
+                value={editClient.full_name}
+                onChange={(e) => setEditClient({ ...editClient, full_name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_phone">Téléphone</Label>
+              <Input
+                id="edit_phone"
+                value={editClient.phone}
+                onChange={(e) => setEditClient({ ...editClient, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_address">Adresse</Label>
+              <Input
+                id="edit_address"
+                value={editClient.address}
+                onChange={(e) => setEditClient({ ...editClient, address: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+                disabled={isEditing}
+                className="flex-1"
+              >
+                Annuler
+              </Button>
+              <Button type="submit" disabled={isEditing} className="flex-1">
+                {isEditing ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
