@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.admin-delete-client]
 verify_jwt = false
+
+[functions.reset-client-password]
+verify_jwt = false
