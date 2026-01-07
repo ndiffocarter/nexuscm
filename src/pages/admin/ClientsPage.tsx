@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MoreVertical, Mail, Phone, User, Trash2, Edit, Eye } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, Mail, Phone, User, Trash2, Edit, Eye, KeyRound, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -68,6 +68,10 @@ export default function ClientsPage() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState<string | null>(null);
+  const [passwordCopied, setPasswordCopied] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -380,6 +384,16 @@ export default function ClientsPage() {
                       <DropdownMenuItem 
                         onClick={() => {
                           setSelectedClient(client);
+                          setNewPassword(null);
+                          setResetPasswordDialogOpen(true);
+                        }}
+                      >
+                        <KeyRound className="w-4 h-4 mr-2" />
+                        Réinitialiser mot de passe
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          setSelectedClient(client);
                           setDeleteDialogOpen(true);
                         }}
                         className="text-destructive focus:text-destructive"
@@ -518,6 +532,117 @@ export default function ClientsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={(open) => {
+        setResetPasswordDialogOpen(open);
+        if (!open) {
+          setNewPassword(null);
+          setPasswordCopied(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
+            <DialogDescription>
+              {newPassword 
+                ? "Le mot de passe a été réinitialisé avec succès."
+                : `Générer un nouveau mot de passe pour ${selectedClient?.full_name}`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          {newPassword ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">Nouveau mot de passe :</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 p-2 bg-background rounded font-mono text-sm">
+                    {newPassword}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(newPassword);
+                      setPasswordCopied(true);
+                      setTimeout(() => setPasswordCopied(false), 2000);
+                    }}
+                  >
+                    {passwordCopied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+                ⚠️ L'email n'a pas pu être envoyé (domaine non vérifié sur Resend). Veuillez communiquer ce mot de passe au client manuellement.
+              </p>
+              <Button 
+                onClick={() => setResetPasswordDialogOpen(false)}
+                className="w-full"
+              >
+                Fermer
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Un nouveau mot de passe sera généré automatiquement. Si l'envoi par email échoue, vous pourrez le copier et le transmettre manuellement.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setResetPasswordDialogOpen(false)}
+                  disabled={isResettingPassword}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!selectedClient || !session?.access_token) return;
+                    setIsResettingPassword(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('reset-client-password', {
+                        body: { client_id: selectedClient.id },
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                      });
+                      
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+                      
+                      if (data?.new_password) {
+                        setNewPassword(data.new_password);
+                      } else if (data?.email_sent) {
+                        toast({
+                          title: "Mot de passe réinitialisé",
+                          description: "Le nouveau mot de passe a été envoyé par email",
+                        });
+                        setResetPasswordDialogOpen(false);
+                      }
+                    } catch (error: any) {
+                      toast({
+                        title: "Erreur",
+                        description: getFunctionErrorMessage(error),
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsResettingPassword(false);
+                    }
+                  }}
+                  disabled={isResettingPassword}
+                  className="flex-1"
+                >
+                  {isResettingPassword ? 'Réinitialisation...' : 'Réinitialiser'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

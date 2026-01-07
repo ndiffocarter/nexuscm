@@ -17,9 +17,11 @@ import AccountsPage from "./pages/admin/AccountsPage";
 import LoansPage from "./pages/admin/LoansPage";
 import TransactionsPage from "./pages/admin/TransactionsPage";
 import SupportAdminPage from "./pages/admin/SupportAdminPage";
+import NotificationsAdminPage from "./pages/admin/NotificationsAdminPage";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientAccountsPage from "./pages/client/ClientAccountsPage";
 import TransferPage from "./pages/client/TransferPage";
+import TransferHistoryPage from "./pages/client/TransferHistoryPage";
 import LoanRequestPage from "./pages/client/LoanRequestPage";
 import NotificationsPage from "./pages/client/NotificationsPage";
 import SupportPage from "./pages/client/SupportPage";
@@ -48,6 +50,7 @@ const App = () => (
                 <Route path="accounts/new" element={<AccountsPage />} />
                 <Route path="loans" element={<LoansPage />} />
                 <Route path="transactions" element={<TransactionsPage />} />
+                <Route path="notifications" element={<NotificationsAdminPage />} />
                 <Route path="support" element={<SupportAdminPage />} />
               </Route>
               
@@ -56,6 +59,7 @@ const App = () => (
                 <Route index element={<ClientDashboard />} />
                 <Route path="accounts" element={<ClientAccountsPage />} />
                 <Route path="transfer" element={<TransferPage />} />
+                <Route path="transfer-history" element={<TransferHistoryPage />} />
                 <Route path="loans" element={<LoanRequestPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="support" element={<SupportPage />} />
