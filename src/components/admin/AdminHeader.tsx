@@ -20,6 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface AdminHeaderProps {
   title: string;
   subtitle?: string;
+  children?: React.ReactNode;
 }
 
 interface Notification {
@@ -32,7 +33,7 @@ interface Notification {
   user_name?: string;
 }
 
-export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
+export function AdminHeader({ title, subtitle, children }: AdminHeaderProps) {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -94,6 +95,8 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
         </div>
         
         <div className="flex items-center gap-4">
+          {children}
+          
           <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input

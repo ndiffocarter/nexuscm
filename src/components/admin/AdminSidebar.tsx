@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-import { Bell } from 'lucide-react';
+import { Bell, Settings } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Tableau de bord', path: '/admin' },
@@ -25,6 +25,7 @@ const navItems = [
   { icon: FileText, label: 'Demandes de prêt', path: '/admin/loans' },
   { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
   { icon: HelpCircle, label: 'Support', path: '/admin/support' },
+  { icon: Settings, label: 'Paramètres', path: '/admin/settings' },
 ];
 
 interface AdminSidebarProps {
