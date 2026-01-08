@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react';
-import { CreditCard, ArrowUpRight, ArrowDownRight, Send } from 'lucide-react';
+import { CreditCard, ArrowUpRight, ArrowDownRight, Send, FileDown, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { exportAccountStatementPDF, AccountStatement } from '@/lib/exportUtils';
+import { useToast } from '@/hooks/use-toast';
 
 interface Account {
   id: string;
@@ -25,11 +38,21 @@ interface Transaction {
 }
 
 export default function ClientAccountsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [statementDialogOpen, setStatementDialogOpen] = useState(false);
+  const [statementAccountId, setStatementAccountId] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -83,6 +106,88 @@ export default function ClientAccountsPage() {
     }).format(amount);
   };
 
+  const openStatementDialog = (accountId: string) => {
+    setStatementAccountId(accountId);
+    setStatementDialogOpen(true);
+  };
+
+  const generateStatement = async () => {
+    if (!statementAccountId) return;
+    
+    setIsGenerating(true);
+    try {
+      const account = accounts.find(a => a.id === statementAccountId);
+      if (!account) throw new Error('Compte non trouvé');
+
+      // Fetch transactions for the period
+      const { data: txData, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('account_id', statementAccountId)
+        .gte('created_at', new Date(startDate).toISOString())
+        .lte('created_at', new Date(endDate + 'T23:59:59').toISOString())
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Calculate running balance
+      let runningBalance = account.balance;
+      // Reverse calculate starting balance
+      (txData || []).slice().reverse().forEach(tx => {
+        if (tx.transaction_type === 'credit') {
+          runningBalance -= Number(tx.amount);
+        } else {
+          runningBalance += Number(tx.amount);
+        }
+      });
+
+      // Build transactions with running balance
+      const statementTransactions = (txData || []).map(tx => {
+        if (tx.transaction_type === 'credit') {
+          runningBalance += Number(tx.amount);
+        } else {
+          runningBalance -= Number(tx.amount);
+        }
+        return {
+          date: tx.created_at,
+          type: tx.transaction_type === 'credit' ? 'Crédit' : 
+                tx.transaction_type === 'debit' ? 'Débit' : 'Virement',
+          description: tx.description || '-',
+          amount: tx.transaction_type === 'credit' ? Number(tx.amount) : -Number(tx.amount),
+          balance: runningBalance
+        };
+      });
+
+      const statement: AccountStatement = {
+        accountNumber: account.account_number,
+        accountType: account.account_type === 'checking' ? 'Compte Courant' : 'Compte Épargne',
+        ownerName: profile?.full_name || 'Client',
+        balance: account.balance,
+        transactions: statementTransactions,
+        startDate,
+        endDate
+      };
+
+      exportAccountStatementPDF(statement);
+      
+      toast({
+        title: "Relevé généré",
+        description: "Le relevé de compte a été téléchargé"
+      });
+      
+      setStatementDialogOpen(false);
+    } catch (error) {
+      console.error('Error generating statement:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer le relevé",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -107,35 +212,54 @@ export default function ClientAccountsPage() {
             {accounts.map((account, index) => (
               <Card 
                 key={account.id}
-                className={`glass-card cursor-pointer transition-all duration-300 animate-fade-in-up ${
+                className={`glass-card transition-all duration-300 animate-fade-in-up ${
                   selectedAccountId === account.id ? 'ring-2 ring-primary shadow-glow' : 'hover:shadow-elevated'
                 }`}
                 style={{ animationDelay: `${index * 0.1}s` }}
-                onClick={() => setSelectedAccountId(account.id)}
               >
                 <div className={`h-2 ${account.account_type === 'checking' ? '[background:var(--gradient-primary)]' : '[background:var(--gradient-gold)]'}`} />
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <Badge variant={account.account_type === 'checking' ? 'default' : 'secondary'}>
-                        {account.account_type === 'checking' ? 'Compte Courant' : 'Compte Épargne'}
-                      </Badge>
-                      <p className="font-mono text-lg mt-3">{account.account_number}</p>
-                      <p className="text-3xl font-bold mt-2">{formatCurrency(account.balance)}</p>
+                  <div 
+                    className="cursor-pointer"
+                    onClick={() => setSelectedAccountId(account.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <Badge variant={account.account_type === 'checking' ? 'default' : 'secondary'}>
+                          {account.account_type === 'checking' ? 'Compte Courant' : 'Compte Épargne'}
+                        </Badge>
+                        <p className="font-mono text-lg mt-3">{account.account_number}</p>
+                        <p className="text-3xl font-bold mt-2">{formatCurrency(account.balance)}</p>
+                      </div>
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                        account.account_type === 'checking' ? '[background:var(--gradient-primary)]' : '[background:var(--gradient-gold)]'
+                      }`}>
+                        <CreditCard className="w-7 h-7 text-white" />
+                      </div>
                     </div>
-                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                      account.account_type === 'checking' ? '[background:var(--gradient-primary)]' : '[background:var(--gradient-gold)]'
-                    }`}>
-                      <CreditCard className="w-7 h-7 text-white" />
+                    <div className="flex items-center gap-2 mt-4">
+                      <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                        Actif
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        Ouvert le {new Date(account.created_at).toLocaleDateString('fr-FR')}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-4">
-                    <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                      Actif
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      Ouvert le {new Date(account.created_at).toLocaleDateString('fr-FR')}
-                    </span>
+                  
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openStatementDialog(account.id);
+                      }}
+                    >
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Télécharger un relevé
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -211,6 +335,59 @@ export default function ClientAccountsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Statement Dialog */}
+      <Dialog open={statementDialogOpen} onOpenChange={setStatementDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Générer un relevé de compte
+            </DialogTitle>
+            <DialogDescription>
+              Sélectionnez la période pour votre relevé de compte
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Date de début</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">Date de fin</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <Button 
+              className="w-full" 
+              onClick={generateStatement}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>Génération en cours...</>
+              ) : (
+                <>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Télécharger le relevé PDF
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
