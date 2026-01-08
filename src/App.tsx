@@ -18,6 +18,7 @@ import LoansPage from "./pages/admin/LoansPage";
 import TransactionsPage from "./pages/admin/TransactionsPage";
 import SupportAdminPage from "./pages/admin/SupportAdminPage";
 import NotificationsAdminPage from "./pages/admin/NotificationsAdminPage";
+import SettingsPage from "./pages/admin/SettingsPage";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientAccountsPage from "./pages/client/ClientAccountsPage";
 import TransferPage from "./pages/client/TransferPage";
@@ -49,9 +50,10 @@ const App = () => (
                 <Route path="accounts" element={<AccountsPage />} />
                 <Route path="accounts/new" element={<AccountsPage />} />
                 <Route path="loans" element={<LoansPage />} />
-                <Route path="transactions" element={<TransactionsPage />} />
+              <Route path="transactions" element={<TransactionsPage />} />
                 <Route path="notifications" element={<NotificationsAdminPage />} />
                 <Route path="support" element={<SupportAdminPage />} />
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
               
               {/* Client Routes */}
