@@ -85,94 +85,102 @@ export function AdminHeader({ title, subtitle, children }: AdminHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {subtitle && (
-            <p className="text-muted-foreground">{subtitle}</p>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {children}
-          
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher..."
-              className="w-64 pl-10"
-            />
+    <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border px-4 md:px-6 py-4">
+      <div className="flex flex-col gap-4">
+        {/* Top row: title and actions */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold">{title}</h1>
+            {subtitle && (
+              <p className="text-sm text-muted-foreground hidden sm:block">{subtitle}</p>
+            )}
           </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="notification-badge">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <span className="font-semibold">Notifications</span>
-                {unreadCount > 0 && (
-                  <Badge variant="secondary">{unreadCount} non lues</Badge>
-                )}
-              </div>
-              
-              <ScrollArea className="h-[300px]">
-                {notifications.length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground text-sm">
-                    Aucune notification récente
-                  </div>
-                ) : (
-                  notifications.map((notification) => (
-                    <DropdownMenuItem
-                      key={notification.id}
-                      className={`flex flex-col items-start gap-1 p-4 cursor-pointer ${
-                        !notification.is_read ? 'bg-primary/5' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <span className="font-medium text-sm flex-1 truncate">
-                          {notification.title}
-                        </span>
-                        {!notification.is_read && (
-                          <span className="w-2 h-2 bg-primary rounded-full" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <div className="flex items-center justify-between w-full mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {notification.user_name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(notification.created_at), 'dd MMM HH:mm', { locale: fr })}
-                        </span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))
-                )}
-              </ScrollArea>
-              
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="justify-center text-primary font-medium py-3 cursor-pointer"
-                onClick={() => navigate('/admin/notifications')}
-              >
-                Voir toutes les notifications
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <ThemeToggle />
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            <div className="relative hidden lg:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher..."
+                className="w-64 pl-10"
+              />
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="notification-badge">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                  <span className="font-semibold">Notifications</span>
+                  {unreadCount > 0 && (
+                    <Badge variant="secondary">{unreadCount} non lues</Badge>
+                  )}
+                </div>
+                
+                <ScrollArea className="h-[300px]">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground text-sm">
+                      Aucune notification récente
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <DropdownMenuItem
+                        key={notification.id}
+                        className={`flex flex-col items-start gap-1 p-4 cursor-pointer ${
+                          !notification.is_read ? 'bg-primary/5' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <span className="font-medium text-sm flex-1 truncate">
+                            {notification.title}
+                          </span>
+                          {!notification.is_read && (
+                            <span className="w-2 h-2 bg-primary rounded-full" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <div className="flex items-center justify-between w-full mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {notification.user_name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(notification.created_at), 'dd MMM HH:mm', { locale: fr })}
+                          </span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </ScrollArea>
+                
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="justify-center text-primary font-medium py-3 cursor-pointer"
+                  onClick={() => navigate('/admin/notifications')}
+                >
+                  Voir toutes les notifications
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <ThemeToggle />
+          </div>
         </div>
+        
+        {/* Children row (e.g., period selector) - shown below on mobile */}
+        {children && (
+          <div className="flex items-center gap-2">
+            {children}
+          </div>
+        )}
       </div>
     </header>
   );
