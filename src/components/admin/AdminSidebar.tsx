@@ -49,7 +49,7 @@ export function AdminSidebar({ isOpen, onToggle }: AdminSidebarProps) {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed left-0 top-0 h-screen w-72 bg-sidebar flex flex-col z-40 transition-transform duration-300",
+        "fixed left-0 top-0 h-screen w-72 bg-sidebar border-r border-sidebar-border flex flex-col z-40 transition-transform duration-300",
         !isOpen && "-translate-x-full lg:translate-x-0"
       )}>
         {/* Logo + Close button */}
