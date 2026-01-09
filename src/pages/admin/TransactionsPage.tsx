@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, Search, Download } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowLeftRight, Search, Calendar, Filter } from 'lucide-react';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
   Table,
   TableBody,
@@ -14,6 +17,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ExportButtons } from '@/components/ExportButtons';
 
 interface Transaction {
   id: string;
@@ -31,18 +47,37 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: subDays(new Date(), 30),
+    to: new Date()
+  });
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [dateRange, typeFilter]);
 
   async function fetchTransactions() {
     try {
-      const { data: txData, error: txError } = await supabase
+      let query = supabase
         .from('transactions')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .order('created_at', { ascending: false });
+
+      // Apply date filter
+      if (dateRange.from) {
+        query = query.gte('created_at', startOfDay(dateRange.from).toISOString());
+      }
+      if (dateRange.to) {
+        query = query.lte('created_at', endOfDay(dateRange.to).toISOString());
+      }
+
+      // Apply type filter
+      if (typeFilter !== 'all') {
+        query = query.eq('transaction_type', typeFilter as 'credit' | 'debit' | 'transfer');
+      }
+
+      const { data: txData, error: txError } = await query.limit(500);
 
       if (txError) throw txError;
 
@@ -125,22 +160,45 @@ export default function TransactionsPage() {
     }
   };
 
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'credit': return 'Crédit';
+      case 'debit': return 'Débit';
+      case 'transfer': return 'Virement';
+      default: return type;
+    }
+  };
+
   const filteredTransactions = transactions.filter(tx =>
-    tx.account?.account_number.includes(searchQuery) ||
-    tx.account?.profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tx.account?.account_number?.includes(searchQuery) ||
+    tx.account?.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tx.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Export columns configuration
+  const exportColumns = [
+    { header: 'Date', accessor: (row: Transaction) => format(new Date(row.created_at), 'dd/MM/yyyy HH:mm', { locale: fr }) },
+    { header: 'Type', accessor: (row: Transaction) => getTypeLabel(row.transaction_type) },
+    { header: 'Client', accessor: (row: Transaction) => row.account?.profiles?.full_name || '-' },
+    { header: 'Compte', accessor: (row: Transaction) => row.account?.account_number || '-' },
+    { header: 'Description', accessor: (row: Transaction) => row.description || '-' },
+    { header: 'Montant (XAF)', accessor: (row: Transaction) => row.amount },
+  ];
+
+  const exportTitle = 'Historique des transactions';
+  const exportSubtitle = `Période: ${dateRange.from ? format(dateRange.from, 'dd/MM/yyyy', { locale: fr }) : '-'} au ${dateRange.to ? format(dateRange.to, 'dd/MM/yyyy', { locale: fr }) : '-'}${typeFilter !== 'all' ? ` | Type: ${getTypeLabel(typeFilter)}` : ''}`;
 
   return (
     <div className="min-h-screen">
       <AdminHeader 
         title="Historique des transactions" 
-        subtitle={`${transactions.length} transactions enregistrées`}
+        subtitle={`${filteredTransactions.length} transactions${typeFilter !== 'all' ? ` (${getTypeLabel(typeFilter)})` : ''}`}
       />
       
       <div className="p-6">
-        {/* Actions Bar */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        {/* Filters Bar */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-6">
+          {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -150,11 +208,61 @@ export default function TransactionsPage() {
               className="pl-10"
             />
           </div>
+
+          {/* Date Range Picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="min-w-[240px] justify-start">
+                <Calendar className="w-4 h-4 mr-2" />
+                {dateRange.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, 'dd MMM', { locale: fr })} - {format(dateRange.to, 'dd MMM yyyy', { locale: fr })}
+                    </>
+                  ) : (
+                    format(dateRange.from, 'dd MMM yyyy', { locale: fr })
+                  )
+                ) : (
+                  'Sélectionner une période'
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <CalendarComponent
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange.from}
+                selected={{ from: dateRange.from, to: dateRange.to }}
+                onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                numberOfMonths={2}
+                locale={fr}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Type Filter */}
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[160px]">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les types</SelectItem>
+              <SelectItem value="credit">Crédits</SelectItem>
+              <SelectItem value="debit">Débits</SelectItem>
+              <SelectItem value="transfer">Virements</SelectItem>
+            </SelectContent>
+          </Select>
           
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Exporter
-          </Button>
+          {/* Export Buttons */}
+          <ExportButtons
+            filename="transactions"
+            title={exportTitle}
+            subtitle={exportSubtitle}
+            columns={exportColumns}
+            data={filteredTransactions}
+            disabled={isLoading}
+          />
         </div>
 
         {/* Transactions Table */}
