@@ -26,6 +26,7 @@ import TransferHistoryPage from "./pages/client/TransferHistoryPage";
 import LoanRequestPage from "./pages/client/LoanRequestPage";
 import NotificationsPage from "./pages/client/NotificationsPage";
 import SupportPage from "./pages/client/SupportPage";
+import VirtualCardsPage from "./pages/client/VirtualCardsPage";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
                 <Route path="transfer" element={<TransferPage />} />
                 <Route path="transfer-history" element={<TransferHistoryPage />} />
                 <Route path="loans" element={<LoanRequestPage />} />
+                <Route path="cards" element={<VirtualCardsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="support" element={<SupportPage />} />
               </Route>

@@ -10,15 +10,15 @@ interface TwoFactorVerificationProps {
   userId: string;
   email: string;
   fullName?: string;
-  onVerified: () => void;
+  onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function TwoFactorVerification({ 
+export default function TwoFactorVerification({ 
   userId, 
   email, 
   fullName, 
-  onVerified, 
+  onSuccess, 
   onCancel 
 }: TwoFactorVerificationProps) {
   const [code, setCode] = useState('');
@@ -83,7 +83,7 @@ export function TwoFactorVerification({
           title: "Vérification réussie",
           description: "Bienvenue !",
         });
-        onVerified();
+        onSuccess();
       } else {
         toast({
           title: "Code invalide",

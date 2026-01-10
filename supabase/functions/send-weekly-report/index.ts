@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -126,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
       sent_to: adminEmails
     });
 
-    // Send email to all admins
+    // Date formatting for email
     const dateFormatter = new Intl.DateTimeFormat('fr-FR', { 
       day: '2-digit', 
       month: 'long', 
@@ -219,20 +216,30 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
+    // Send email via send-email edge function
     for (const email of adminEmails) {
-      await resend.emails.send({
-        from: "SecureBank <onboarding@resend.dev>",
-        to: [email],
-        subject: `📊 Rapport Hebdomadaire SecureBank - ${dateFormatter.format(startDate)} au ${dateFormatter.format(endDate)}`,
-        html: emailHtml,
-      });
-      console.log(`Report sent to: ${email}`);
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            to: email,
+            subject: `📊 Rapport Hebdomadaire SecureBank - ${dateFormatter.format(startDate)} au ${dateFormatter.format(endDate)}`,
+            html: emailHtml,
+          }
+        });
+        console.log(`Report sent to: ${email}`);
+      } catch (emailError) {
+        console.log(`Failed to send to ${email}:`, emailError);
+      }
     }
 
-    console.log("Weekly report generated and sent successfully");
+    console.log("Weekly report generated and saved successfully");
 
     return new Response(
-      JSON.stringify({ success: true, sentTo: adminEmails }),
+      JSON.stringify({ 
+        success: true, 
+        sentTo: adminEmails,
+        report: reportData 
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
