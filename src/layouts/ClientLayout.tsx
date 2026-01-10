@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   Home, CreditCard, Send, FileText, Bell, HelpCircle, 
-  LogOut, Menu, X, User, Building2 
+  LogOut, Menu, X, User, Building2, Wallet, Settings 
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -14,10 +14,12 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { to: '/dashboard', icon: Home, label: 'Tableau de bord' },
   { to: '/dashboard/accounts', icon: CreditCard, label: 'Mes comptes' },
+  { to: '/dashboard/cards', icon: Wallet, label: 'Cartes virtuelles' },
   { to: '/dashboard/transfer', icon: Send, label: 'Virement' },
   { to: '/dashboard/loans', icon: FileText, label: 'Demander un prêt' },
   { to: '/dashboard/notifications', icon: Bell, label: 'Notifications' },
   { to: '/dashboard/support', icon: HelpCircle, label: 'Support' },
+  { to: '/dashboard/settings', icon: Settings, label: 'Paramètres' },
 ];
 
 export default function ClientLayout() {
