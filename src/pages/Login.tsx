@@ -7,12 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import TwoFactorVerification from '@/components/TwoFactorVerification';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [show2FA, setShow2FA] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [pendingUserEmail, setPendingUserEmail] = useState<string>('');
+  const [pendingUserName, setPendingUserName] = useState<string>('');
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -29,7 +35,60 @@ export default function Login() {
         description: "Email ou mot de passe incorrect",
         variant: "destructive",
       });
+      setIsLoading(false);
+      return;
+    }
+
+    // Get the user info
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Check if 2FA is enabled for this user
+    const { data: settings } = await supabase
+      .from('user_2fa_settings' as any)
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_enabled', true)
+      .maybeSingle();
+
+    if (settings) {
+      // 2FA is enabled, sign out temporarily and show 2FA screen
+      await supabase.auth.signOut();
+      
+      // Get user profile for email
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      setPendingUserId(user.id);
+      setPendingUserEmail(email);
+      setPendingUserName(profile?.full_name || '');
+      setShow2FA(true);
+      
+      // Send 2FA code
+      try {
+        await supabase.functions.invoke('send-2fa-code', {
+          body: {
+            user_id: user.id,
+            email: email,
+            full_name: profile?.full_name
+          }
+        });
+        toast({
+          title: "Code envoyé",
+          description: "Vérifiez votre email pour le code de vérification",
+        });
+      } catch (err) {
+        console.error('Error sending 2FA code:', err);
+      }
     } else {
+      // No 2FA, proceed normally
       toast({
         title: "Connexion réussie",
         description: "Bienvenue sur votre espace bancaire",
@@ -39,6 +98,38 @@ export default function Login() {
 
     setIsLoading(false);
   };
+
+  const handle2FASuccess = async () => {
+    // Re-sign in after 2FA verification
+    const { error } = await signIn(email, password);
+    
+    if (!error) {
+      toast({
+        title: "Connexion réussie",
+        description: "Bienvenue sur votre espace bancaire",
+      });
+      navigate('/dashboard');
+    }
+  };
+
+  const handle2FACancel = () => {
+    setShow2FA(false);
+    setPendingUserId(null);
+    setPendingUserEmail('');
+    setPendingUserName('');
+  };
+
+  if (show2FA && pendingUserId) {
+    return (
+      <TwoFactorVerification
+        userId={pendingUserId}
+        email={pendingUserEmail}
+        fullName={pendingUserName}
+        onSuccess={handle2FASuccess}
+        onCancel={handle2FACancel}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
