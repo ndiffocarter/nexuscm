@@ -13,7 +13,6 @@ interface TwoFactorSettings {
   id?: string;
   user_id: string;
   is_enabled: boolean;
-  method: string;
 }
 
 interface NotificationPreferences {
@@ -95,8 +94,7 @@ export default function ClientSettingsPage() {
           .from('user_2fa_settings' as any)
           .insert({
             user_id: user.id,
-            is_enabled: newValue,
-            method: 'email'
+            is_enabled: newValue
           });
 
         if (error) throw error;
