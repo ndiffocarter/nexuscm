@@ -309,6 +309,57 @@ export type Database = {
           },
         ]
       }
+      two_factor_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          used: boolean
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          used?: boolean
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          used?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_2fa_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -329,6 +380,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      virtual_cards: {
+        Row: {
+          account_id: string
+          card_holder_name: string
+          card_number: string
+          card_type: string
+          created_at: string
+          current_spending: number
+          cvv: string
+          expiry_date: string
+          id: string
+          is_active: boolean
+          is_frozen: boolean
+          spending_limit: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          card_holder_name: string
+          card_number: string
+          card_type?: string
+          created_at?: string
+          current_spending?: number
+          cvv: string
+          expiry_date: string
+          id?: string
+          is_active?: boolean
+          is_frozen?: boolean
+          spending_limit?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          card_holder_name?: string
+          card_number?: string
+          card_type?: string
+          created_at?: string
+          current_spending?: number
+          cvv?: string
+          expiry_date?: string
+          id?: string
+          is_active?: boolean
+          is_frozen?: boolean
+          spending_limit?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "virtual_cards_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
