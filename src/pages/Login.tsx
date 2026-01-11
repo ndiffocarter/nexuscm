@@ -88,7 +88,20 @@ export default function Login() {
         console.error('Error sending 2FA code:', err);
       }
     } else {
-      // No 2FA, proceed normally
+      // No 2FA, proceed normally - record login history
+      try {
+        await supabase.functions.invoke('record-login-history', {
+          body: {
+            user_id: user.id,
+            ip_address: null,
+            user_agent: navigator.userAgent,
+            success: true
+          }
+        });
+      } catch (err) {
+        console.error('Error recording login history:', err);
+      }
+      
       toast({
         title: "Connexion réussie",
         description: "Bienvenue sur votre espace bancaire",
@@ -104,6 +117,23 @@ export default function Login() {
     const { error } = await signIn(email, password);
     
     if (!error) {
+      // Record login history after successful 2FA
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        try {
+          await supabase.functions.invoke('record-login-history', {
+            body: {
+              user_id: user.id,
+              ip_address: null,
+              user_agent: navigator.userAgent,
+              success: true
+            }
+          });
+        } catch (err) {
+          console.error('Error recording login history:', err);
+        }
+      }
+      
       toast({
         title: "Connexion réussie",
         description: "Bienvenue sur votre espace bancaire",

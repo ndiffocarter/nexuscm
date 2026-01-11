@@ -7,19 +7,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface EmailData {
+  name?: string;
+  email?: string;
+  password?: string;
+  amount?: number;
+  accountNumber?: string;
+  recipientAccountNumber?: string;
+  senderName?: string;
+  description?: string;
+  code?: string;
+  full_name?: string;
+}
+
 interface EmailRequest {
-  type: 'credentials' | 'transfer_sent' | 'transfer_received' | 'loan_approved' | 'loan_rejected';
+  type?: 'credentials' | 'transfer_sent' | 'transfer_received' | 'loan_approved' | 'loan_rejected' | '2fa';
   to: string;
-  data: {
-    name?: string;
-    email?: string;
-    password?: string;
-    amount?: number;
-    accountNumber?: string;
-    recipientAccountNumber?: string;
-    senderName?: string;
-    description?: string;
-  };
+  subject?: string;
+  html?: string;
+  data?: EmailData;
 }
 
 const formatCurrency = (amount: number) => {
@@ -30,7 +36,7 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-const getEmailContent = (type: string, data: EmailRequest['data']) => {
+const getEmailContent = (type: string, data: EmailData) => {
   switch (type) {
     case 'credentials':
       return {
@@ -61,17 +67,17 @@ const getEmailContent = (type: string, data: EmailRequest['data']) => {
                 <p style="margin-top: 8px; opacity: 0.9;">Votre banque de confiance</p>
               </div>
               <div class="content">
-                <h2 style="color: #1e3a5f; margin-top: 0;">Bienvenue ${data.name} !</h2>
+                <h2 style="color: #1e3a5f; margin-top: 0;">Bienvenue ${data.name || ''} !</h2>
                 <p style="color: #475569; line-height: 1.6;">Votre compte bancaire a été créé avec succès. Voici vos identifiants de connexion :</p>
                 
                 <div class="credentials-box">
                   <div class="credential">
                     <div class="label">📧 Email</div>
-                    <div class="value">${data.email}</div>
+                    <div class="value">${data.email || ''}</div>
                   </div>
                   <div class="credential">
                     <div class="label">🔐 Mot de passe</div>
-                    <div class="value">${data.password}</div>
+                    <div class="value">${data.password || ''}</div>
                   </div>
                 </div>
                 
@@ -86,7 +92,7 @@ const getEmailContent = (type: string, data: EmailRequest['data']) => {
                 </center>
               </div>
               <div class="footer">
-                <p>© 2024 SecureBank. Tous droits réservés.</p>
+                <p>© 2026 SecureBank. Tous droits réservés.</p>
                 <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
               </div>
             </div>
@@ -120,7 +126,7 @@ const getEmailContent = (type: string, data: EmailRequest['data']) => {
                 <h1>💸 Virement effectué</h1>
               </div>
               <div class="content">
-                <p style="color: #475569;">Bonjour ${data.name},</p>
+                <p style="color: #475569;">Bonjour ${data.name || ''},</p>
                 <p style="color: #475569;">Un virement a été effectué depuis votre compte.</p>
                 
                 <div class="amount">-${formatCurrency(data.amount || 0)}</div>
@@ -128,11 +134,11 @@ const getEmailContent = (type: string, data: EmailRequest['data']) => {
                 <div class="details">
                   <div class="detail-row">
                     <span style="color: #64748b;">De</span>
-                    <span style="font-weight: bold; color: #1e3a5f;">${data.accountNumber}</span>
+                    <span style="font-weight: bold; color: #1e3a5f;">${data.accountNumber || ''}</span>
                   </div>
                   <div class="detail-row">
                     <span style="color: #64748b;">Vers</span>
-                    <span style="font-weight: bold; color: #1e3a5f;">${data.recipientAccountNumber}</span>
+                    <span style="font-weight: bold; color: #1e3a5f;">${data.recipientAccountNumber || ''}</span>
                   </div>
                   <div class="detail-row">
                     <span style="color: #64748b;">Description</span>
@@ -141,7 +147,7 @@ const getEmailContent = (type: string, data: EmailRequest['data']) => {
                 </div>
               </div>
               <div class="footer">
-                <p>© 2024 SecureBank. Tous droits réservés.</p>
+                <p>© 2026 SecureBank. Tous droits réservés.</p>
               </div>
             </div>
           </body>
@@ -174,7 +180,7 @@ const getEmailContent = (type: string, data: EmailRequest['data']) => {
                 <h1>💰 Virement reçu</h1>
               </div>
               <div class="content">
-                <p style="color: #475569;">Bonjour ${data.name},</p>
+                <p style="color: #475569;">Bonjour ${data.name || ''},</p>
                 <p style="color: #475569;">Vous avez reçu un virement sur votre compte.</p>
                 
                 <div class="amount">+${formatCurrency(data.amount || 0)}</div>
@@ -186,7 +192,7 @@ const getEmailContent = (type: string, data: EmailRequest['data']) => {
                   </div>
                   <div class="detail-row">
                     <span style="color: #64748b;">Sur le compte</span>
-                    <span style="font-weight: bold; color: #1e3a5f; display: block; margin-top: 4px;">${data.accountNumber}</span>
+                    <span style="font-weight: bold; color: #1e3a5f; display: block; margin-top: 4px;">${data.accountNumber || ''}</span>
                   </div>
                   <div class="detail-row">
                     <span style="color: #64748b;">Description</span>
@@ -195,7 +201,7 @@ const getEmailContent = (type: string, data: EmailRequest['data']) => {
                 </div>
               </div>
               <div class="footer">
-                <p>© 2024 SecureBank. Tous droits réservés.</p>
+                <p>© 2026 SecureBank. Tous droits réservés.</p>
               </div>
             </div>
           </body>
@@ -217,11 +223,26 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { type, to, data }: EmailRequest = await req.json();
+    const requestBody: EmailRequest = await req.json();
+    const { type, to, subject: directSubject, html: directHtml, data } = requestBody;
     
-    console.log(`Sending ${type} email to ${to}`);
+    console.log(`Sending email to ${to}, type: ${type || 'direct'}`);
     
-    const { subject, html } = getEmailContent(type, data);
+    let subject: string;
+    let html: string;
+    
+    // If subject and html are provided directly (from send-2fa-code), use them
+    if (directSubject && directHtml) {
+      subject = directSubject;
+      html = directHtml;
+    } else if (type && data) {
+      // Otherwise use the template system
+      const content = getEmailContent(type, data);
+      subject = content.subject;
+      html = content.html;
+    } else {
+      throw new Error('Invalid email request: must provide either (subject + html) or (type + data)');
+    }
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",

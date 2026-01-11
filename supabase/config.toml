@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.send-weekly-report]
 verify_jwt = false
+
+[functions.record-login-history]
+verify_jwt = false

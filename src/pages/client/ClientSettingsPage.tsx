@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { LoginHistory } from '@/components/client/LoginHistory';
 
 interface TwoFactorSettings {
   id?: string;
@@ -307,6 +308,9 @@ export default function ClientSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Login History Section */}
+      <LoginHistory />
     </div>
   );
 }
