@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { CreditCard, TrendingUp, ArrowUpRight, ArrowDownRight, Send, FileText, Eye, EyeOff } from 'lucide-react';
+import { CreditCard, TrendingUp, ArrowUpRight, ArrowDownRight, Send, FileText, Eye, EyeOff, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
+import AnalyticsDashboard from '@/components/client/AnalyticsDashboard';
 interface Account {
   id: string;
   account_number: string;
@@ -279,6 +279,11 @@ export default function ClientDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Analytics Dashboard */}
+      <div className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+        <AnalyticsDashboard />
       </div>
     </div>
   );
