@@ -23,6 +23,17 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Get current IP address
+  const getCurrentIP = async (): Promise<string | null> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch {
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -47,6 +58,9 @@ export default function Login() {
       return;
     }
 
+    // Get current IP
+    const currentIP = await getCurrentIP();
+
     // Check if 2FA is enabled for this user
     const { data: settings } = await supabase
       .from('user_2fa_settings' as any)
@@ -56,36 +70,51 @@ export default function Login() {
       .maybeSingle();
 
     if (settings) {
-      // 2FA is enabled, sign out temporarily and show 2FA screen
-      await supabase.auth.signOut();
+      // Check if IP has changed
+      const lastKnownIP = (settings as any).last_known_ip;
+      const ipChanged = lastKnownIP && currentIP && lastKnownIP !== currentIP;
+      const isFirstLogin = !lastKnownIP;
       
-      // Get user profile for email
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
+      if (ipChanged || isFirstLogin) {
+        // IP changed or first login, require 2FA verification
+        await supabase.auth.signOut();
+        
+        // Get user profile for email
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
 
-      setPendingUserId(user.id);
-      setPendingUserEmail(email);
-      setPendingUserName(profile?.full_name || '');
-      setShow2FA(true);
-      
-      // Send 2FA code
-      try {
-        await supabase.functions.invoke('send-2fa-code', {
-          body: {
-            user_id: user.id,
-            email: email,
-            full_name: profile?.full_name
-          }
-        });
+        setPendingUserId(user.id);
+        setPendingUserEmail(email);
+        setPendingUserName(profile?.full_name || '');
+        setShow2FA(true);
+        setIsLoading(false);
+        
+        // The TwoFactorVerification component will send the code on mount
+        // Don't send here to avoid double email
+        return;
+      } else {
+        // Same IP, no 2FA needed
+        try {
+          await supabase.functions.invoke('record-login-history', {
+            body: {
+              user_id: user.id,
+              ip_address: currentIP,
+              user_agent: navigator.userAgent,
+              success: true
+            }
+          });
+        } catch (err) {
+          console.error('Error recording login history:', err);
+        }
+        
         toast({
-          title: "Code envoyé",
-          description: "Vérifiez votre email pour le code de vérification",
+          title: "Connexion réussie",
+          description: "Bienvenue sur votre espace bancaire",
         });
-      } catch (err) {
-        console.error('Error sending 2FA code:', err);
+        navigate('/dashboard');
       }
     } else {
       // No 2FA, proceed normally - record login history
@@ -93,7 +122,7 @@ export default function Login() {
         await supabase.functions.invoke('record-login-history', {
           body: {
             user_id: user.id,
-            ip_address: null,
+            ip_address: currentIP,
             user_agent: navigator.userAgent,
             success: true
           }
@@ -117,14 +146,27 @@ export default function Login() {
     const { error } = await signIn(email, password);
     
     if (!error) {
-      // Record login history after successful 2FA
+      // Get current IP and update last_known_ip
+      const currentIP = await getCurrentIP();
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (user) {
+        // Update the last known IP
+        try {
+          await supabase
+            .from('user_2fa_settings' as any)
+            .update({ last_known_ip: currentIP })
+            .eq('user_id', user.id);
+        } catch (err) {
+          console.error('Error updating last known IP:', err);
+        }
+
+        // Record login history after successful 2FA
         try {
           await supabase.functions.invoke('record-login-history', {
             body: {
               user_id: user.id,
-              ip_address: null,
+              ip_address: currentIP,
               user_agent: navigator.userAgent,
               success: true
             }

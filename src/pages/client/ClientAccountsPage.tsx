@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CreditCard, ArrowUpRight, ArrowDownRight, Send, FileDown, Calendar } from 'lucide-react';
+import { CreditCard, ArrowUpRight, ArrowDownRight, Send, FileDown, Calendar, QrCode } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { exportAccountStatementPDF, AccountStatement } from '@/lib/exportUtils';
 import { useToast } from '@/hooks/use-toast';
+import { QRCodePayment } from '@/components/client/QRCodePayment';
 
 interface Account {
   id: string;
@@ -53,6 +54,8 @@ export default function ClientAccountsPage() {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrAccountId, setQrAccountId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -247,18 +250,31 @@ export default function ClientAccountsPage() {
                     </div>
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t border-border">
+                  <div className="mt-4 pt-4 border-t border-border flex gap-2">
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="w-full"
+                      className="flex-1"
                       onClick={(e) => {
                         e.stopPropagation();
                         openStatementDialog(account.id);
                       }}
                     >
                       <FileDown className="w-4 h-4 mr-2" />
-                      Télécharger un relevé
+                      Relevé
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setQrAccountId(account.id);
+                        setQrDialogOpen(true);
+                      }}
+                    >
+                      <QrCode className="w-4 h-4 mr-2" />
+                      QR Code
                     </Button>
                   </div>
                 </CardContent>
@@ -386,6 +402,28 @@ export default function ClientAccountsPage() {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5" />
+              QR Code de paiement
+            </DialogTitle>
+            <DialogDescription>
+              Partagez ce QR code pour recevoir des paiements sur ce compte
+            </DialogDescription>
+          </DialogHeader>
+          
+          {qrAccountId && (
+            <QRCodePayment
+              accountNumber={accounts.find(a => a.id === qrAccountId)?.account_number || ''}
+              accountHolderName={profile?.full_name || 'Client'}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

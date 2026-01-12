@@ -383,6 +383,7 @@ export type Database = {
           created_at: string
           id: string
           is_enabled: boolean
+          last_known_ip: string | null
           updated_at: string
           user_id: string
         }
@@ -390,6 +391,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_enabled?: boolean
+          last_known_ip?: string | null
           updated_at?: string
           user_id: string
         }
@@ -397,6 +399,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_enabled?: boolean
+          last_known_ip?: string | null
           updated_at?: string
           user_id?: string
         }

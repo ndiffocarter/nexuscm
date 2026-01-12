@@ -79,19 +79,7 @@ export function QRCodePayment({ accountNumber, accountHolderName }: QRCodePaymen
   };
 
   return (
-    <Card className="glass-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg [background:var(--gradient-primary)] flex items-center justify-center">
-            <Share2 className="w-4 h-4 text-white" />
-          </div>
-          QR Code de paiement
-        </CardTitle>
-        <CardDescription>
-          Partagez ce QR code pour recevoir des paiements instantanément
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-6">
         {/* QR Code Display */}
         <div className="flex justify-center">
           <div className="p-6 bg-white rounded-2xl shadow-lg">
@@ -155,8 +143,7 @@ export function QRCodePayment({ accountNumber, accountHolderName }: QRCodePaymen
             )}
             Copier
           </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
