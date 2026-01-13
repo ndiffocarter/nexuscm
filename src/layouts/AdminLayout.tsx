@@ -3,7 +3,6 @@ import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminSidebar, AdminMenuButton } from '@/components/admin/AdminSidebar';
 import { FullPageLoader } from '@/components/LoadingSpinner';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { cn } from '@/lib/utils';
 
 export default function AdminLayout() {
@@ -27,10 +26,11 @@ export default function AdminLayout() {
       <AdminSidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       
       {/* Mobile header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-lg border-b border-border z-20 px-4 flex items-center justify-between">
-        <AdminMenuButton onClick={() => setSidebarOpen(true)} />
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-lg border-b border-border z-20 px-4 flex items-center justify-center">
+        <div className="absolute left-4">
+          <AdminMenuButton onClick={() => setSidebarOpen(true)} />
+        </div>
         <span className="font-semibold">SecureBank Admin</span>
-        <ThemeToggle />
       </header>
       
       <main className={cn(
