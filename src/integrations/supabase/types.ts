@@ -80,6 +80,48 @@ export type Database = {
         }
         Relationships: []
       }
+      budgets: {
+        Row: {
+          alert_sent: boolean
+          alert_threshold: number
+          category: string
+          created_at: string
+          current_spending: number
+          id: string
+          month: number
+          monthly_limit: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          alert_sent?: boolean
+          alert_threshold?: number
+          category: string
+          created_at?: string
+          current_spending?: number
+          id?: string
+          month: number
+          monthly_limit?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          alert_sent?: boolean
+          alert_threshold?: number
+          category?: string
+          created_at?: string
+          current_spending?: number
+          id?: string
+          month?: number
+          monthly_limit?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       loans: {
         Row: {
           account_id: string
