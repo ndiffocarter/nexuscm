@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AnalyticsDashboard from '@/components/client/AnalyticsDashboard';
+import BudgetManager from '@/components/client/BudgetManager';
+import MonthlyStatementGenerator from '@/components/client/MonthlyStatementGenerator';
+
 interface Account {
   id: string;
   account_number: string;
@@ -284,6 +287,12 @@ export default function ClientDashboard() {
       {/* Analytics Dashboard */}
       <div className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
         <AnalyticsDashboard />
+      </div>
+
+      {/* Budget Manager & Monthly Statements */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+        <BudgetManager />
+        <MonthlyStatementGenerator accounts={accounts} />
       </div>
     </div>
   );
