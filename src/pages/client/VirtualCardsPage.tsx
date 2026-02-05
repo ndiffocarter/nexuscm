@@ -215,7 +215,7 @@ export default function VirtualCardsPage() {
     }
   }
 
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', minimumFractionDigits: 0 }).format(amount);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   const formatCardNumber = (number: string) => number.replace(/(.{4})/g, '$1 ').trim();
   const maskCardNumber = (number: string) => '•••• •••• •••• ' + number.slice(-4);
 
@@ -393,7 +393,7 @@ export default function VirtualCardsPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Nouvelle limite (XAF)</Label>
+              <Label>Nouvelle limite (€)</Label>
               <Input 
                 type="number" 
                 value={newLimit} 

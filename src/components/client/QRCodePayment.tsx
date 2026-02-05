@@ -55,7 +55,7 @@ export function QRCodePayment({ accountNumber, accountHolderName }: QRCodePaymen
   const handleShare = async () => {
     const shareData = {
       title: 'Paiement SecureBank',
-      text: `Effectuez un paiement vers ${accountHolderName} (${accountNumber})${amount ? ` - Montant: ${amount} XAF` : ''}`,
+      text: `Effectuez un paiement vers ${accountHolderName} (${accountNumber})${amount ? ` - Montant: ${amount} €` : ''}`,
     };
 
     if (navigator.share) {

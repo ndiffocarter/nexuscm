@@ -248,8 +248,7 @@ export default function BudgetManager() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XAF',
-      minimumFractionDigits: 0
+      currency: 'EUR',
     }).format(amount);
   };
 
@@ -332,7 +331,7 @@ export default function BudgetManager() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label>Limite mensuelle (XAF)</Label>
+                <Label>Limite mensuelle (€)</Label>
                 <Input
                   type="number"
                   value={formData.monthly_limit}

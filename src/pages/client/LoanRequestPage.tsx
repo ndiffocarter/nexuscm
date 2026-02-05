@@ -46,7 +46,7 @@ export default function LoanRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     accountId: '',
-    amount: 100000,
+    amount: 1000,
     duration: 12,
     reason: ''
   });
@@ -137,8 +137,7 @@ export default function LoanRequestPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XAF',
-      minimumFractionDigits: 0
+      currency: 'EUR',
     }).format(amount);
   };
 
@@ -226,13 +225,13 @@ export default function LoanRequestPage() {
                   <Slider
                     value={[form.amount]}
                     onValueChange={([value]) => setForm({ ...form, amount: value })}
-                    min={50000}
-                    max={10000000}
-                    step={50000}
+                    min={500}
+                    max={100000}
+                    step={500}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>50 000 XAF</span>
-                    <span>10 000 000 XAF</span>
+                    <span>500 €</span>
+                    <span>100 000 €</span>
                   </div>
                 </div>
 

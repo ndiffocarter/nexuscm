@@ -160,8 +160,7 @@ export default function TransferHistoryPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
-      currency: "XAF",
-      minimumFractionDigits: 0,
+      currency: "EUR",
     }).format(amount);
   };
 
@@ -260,7 +259,7 @@ export default function TransferHistoryPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Montant min (XAF)</label>
+                <label className="text-sm font-medium">Montant min (€)</label>
                 <Input
                   type="number"
                   placeholder="0"
@@ -270,7 +269,7 @@ export default function TransferHistoryPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Montant max (XAF)</label>
+                <label className="text-sm font-medium">Montant max (€)</label>
                 <Input
                   type="number"
                   placeholder="1000000"
