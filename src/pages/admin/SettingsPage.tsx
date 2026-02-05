@@ -211,7 +211,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="min_loan_amount">
-                      Montant minimum (XAF)
+                      Montant minimum (€)
                     </Label>
                     <Input
                       id="min_loan_amount"
@@ -223,7 +223,7 @@ export default function SettingsPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="max_loan_amount">
-                      Montant maximum (XAF)
+                      Montant maximum (€)
                     </Label>
                     <Input
                       id="max_loan_amount"
@@ -276,7 +276,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="transfer_fee_internal">
-                      Frais virement interne (XAF)
+                      Frais virement interne (€)
                     </Label>
                     <Input
                       id="transfer_fee_internal"
@@ -291,7 +291,7 @@ export default function SettingsPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="transfer_fee_external">
-                      Frais virement externe (XAF)
+                      Frais virement externe (€)
                     </Label>
                     <Input
                       id="transfer_fee_external"

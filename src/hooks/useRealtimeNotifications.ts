@@ -98,8 +98,7 @@ export function useRealtimeTransactions(accountId?: string, onNewTransaction?: (
       title: typeLabels[transaction.transaction_type] || 'Nouvelle transaction',
       description: `Montant: ${new Intl.NumberFormat('fr-FR', {
         style: 'currency',
-        currency: 'XAF',
-        minimumFractionDigits: 0
+        currency: 'EUR',
       }).format(transaction.amount)}`,
     });
 

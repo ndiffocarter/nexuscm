@@ -158,8 +158,7 @@ export default function LoansPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XAF',
-      minimumFractionDigits: 0
+      currency: 'EUR',
     }).format(amount);
   };
 

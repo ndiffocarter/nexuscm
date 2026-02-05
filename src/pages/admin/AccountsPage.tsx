@@ -234,8 +234,7 @@ export default function AccountsPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XAF',
-      minimumFractionDigits: 0
+      currency: 'EUR',
     }).format(amount);
   };
 
@@ -320,7 +319,7 @@ export default function AccountsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Solde initial (XAF)</Label>
+                  <Label>Solde initial (€)</Label>
                   <Input
                     type="number"
                     value={newAccount.initial_balance}
@@ -425,7 +424,7 @@ export default function AccountsPage() {
                 <p className="text-sm">{selectedAccount?.profiles?.full_name}</p>
               </div>
               <div className="space-y-2">
-                <Label>Montant (XAF)</Label>
+                <Label>Montant (€)</Label>
                 <Input
                   type="number"
                   value={transactionAmount}

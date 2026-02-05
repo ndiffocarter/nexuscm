@@ -129,8 +129,7 @@ export default function TransactionsPage() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XAF',
-      minimumFractionDigits: 0
+      currency: 'EUR',
     }).format(amount);
   };
 
@@ -182,7 +181,7 @@ export default function TransactionsPage() {
     { header: 'Client', accessor: (row: Transaction) => row.account?.profiles?.full_name || '-' },
     { header: 'Compte', accessor: (row: Transaction) => row.account?.account_number || '-' },
     { header: 'Description', accessor: (row: Transaction) => row.description || '-' },
-    { header: 'Montant (XAF)', accessor: (row: Transaction) => row.amount },
+    { header: 'Montant (€)', accessor: (row: Transaction) => row.amount },
   ];
 
   const exportTitle = 'Historique des transactions';

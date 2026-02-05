@@ -223,13 +223,13 @@ serve(async (req: Request) => {
       {
         user_id: userId,
         title: "Virement effectué",
-        message: `Votre virement de ${amount} XAF vers ${toAccountNumber} a été effectué avec succès.`,
+        message: `Votre virement de ${amount} € vers ${toAccountNumber} a été effectué avec succès.`,
         notification_type: "transfer_sent",
       },
       {
         user_id: recipientAccount.user_id,
         title: "Virement reçu",
-        message: `Vous avez reçu un virement de ${amount} XAF de ${senderName}.`,
+        message: `Vous avez reçu un virement de ${amount} € de ${senderName}.`,
         notification_type: "transfer_received",
       },
     ]);
